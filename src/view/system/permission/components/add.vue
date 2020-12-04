@@ -1,5 +1,5 @@
 <template>
-  <Modal v-model="modalVisible" title="新建权限" @on-ok="asyncOK">
+  <Modal  v-model="modalVisible" title="新建权限" @on-ok="asyncOK">
       <Tabs size="small">
             <TabPane label="基本信息">
 

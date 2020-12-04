@@ -1,5 +1,5 @@
 <template>
-  <Modal v-model="modalVisible" :title="title" @on-ok="asyncOK">
+  <Modal  v-model="modalVisible" :title="title" @on-ok="asyncOK">
     <Form ref="formValidate" :model="formValidate" :rules="ruleValidate" :label-width="80">
       <FormItem label="机构标识" prop="id">
         <Input v-model="formValidate.id" placeholder=""></Input>

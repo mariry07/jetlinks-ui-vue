@@ -3,7 +3,7 @@
     
 
     
-    <div class="demo-drawer-footer">
+    <div slot="footer">
       <Button style="margin-right: 8px" @click="drawerShow = false">取消</Button>
       <Button type="primary" @click="saveFun">确定</Button>
     </div>

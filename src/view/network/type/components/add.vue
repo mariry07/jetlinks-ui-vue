@@ -114,7 +114,7 @@
         <Input type="textarea" :rows="4" v-model="formCustom.describe"></Input>
       </FormItem>
     </Form>
-    <div class="demo-drawer-footer">
+    <div slot="footer">
       <Button style="margin-right: 8px" @click="drawerShow = false">取消</Button>
       <Button type="primary" @click="saveFun">确定</Button>
     </div>

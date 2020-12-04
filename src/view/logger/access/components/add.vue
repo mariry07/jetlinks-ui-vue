@@ -1,5 +1,5 @@
 <template>
-  <Modal v-model="modalVisible" width="50%" title="访问日志详情" @on-ok="asyncOK">
+  <Modal  v-model="modalVisible" width="50%" title="访问日志详情" @on-ok="asyncOK">
  <table class="form-table el-form-item--mini" cellspacing="0" cellpadding="0">
      <tr>
          <td class="input-label">URL</td>
