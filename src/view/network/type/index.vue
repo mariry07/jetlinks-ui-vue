@@ -6,9 +6,9 @@
           <FormItem label="组件类型:">
             <Tag checkable color="primary">全部</Tag>
             <Tag checkable color="primary">TCP服务</Tag>
-            <Tag checkable color="primary">MQTT客户�/Tag>
+            <Tag checkable color="primary">MQTT客户端</Tag>
             <Tag checkable color="primary">MQTT服务</Tag>
-            <Tag checkable color="primary">TCP客户�/Tag>
+            <Tag checkable color="primary">TCP客户端</Tag>
           </FormItem>
           <FormItem label="其他选项:">
            <Form  :label-width="80">
@@ -40,7 +40,7 @@
                 <p>{{infor.name}}</p>
                 <div style="display: flex;justify-content: start;">
                   <p style="width: 50%;">组件类型</p>
-                  <p>启动状�/p>
+                  <p>启动状态</p>
                 </div>
                 <div style="display: flex;justify-content: start;">
                   <p style="width: 50%;
@@ -122,7 +122,7 @@
       deleFun(row) {
         this.$Modal.confirm({
           title: '提示',
-          content: '<p>确定要删除吗�/p>',
+          content: '<p>确定要删除吗？</p>',
           onOk: () => {
             deleCertificate(row.id).then(res => {
               this.getData()
@@ -140,7 +140,7 @@
         if (copyRow.state.value === 'disabled') {
           this.publicFun('确定关闭', copyRow, '_shutdown')
         } else {
-          this.publicFun('确定开�, copyRow, '_start')
+          this.publicFun('确定开启', copyRow, '_start')
         }
 
       },
@@ -148,7 +148,7 @@
         console.log(data.state.value, url)
         this.$Modal.confirm({
           title: '提示',
-          content: `<p>${type}�/p>`,
+          content: `<p>${type}？</p>`,
           onOk: async () => {
             let res = await setStatus(data.id, url)
             if (res.data.status === 200) {
@@ -206,7 +206,7 @@
   }
 </script>
 
-<style  lang="less">
+<style lang="less" scoped="scoped">
   .iview-item {
     display: flex;
     align-items: center;
