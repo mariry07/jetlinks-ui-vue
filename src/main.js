@@ -1,49 +1,39 @@
-// The Vue build version to load with the `import` command
-// (runtime-only or standalone) has been set in webpack.base.conf with an alias.
+// with polyfills
+import 'core-js/stable'
+import 'regenerator-runtime/runtime'
+
 import Vue from 'vue'
-import App from './App'
+import App from './App.vue'
 import router from './router'
-import store from './store'
-import ViewUI from 'view-design'
-import i18n from '@/locale'
-import config from '@/config'
-import importDirective from '@/directive'
-import installPlugin from '@/plugin'
-// import './index.less'
-import '@/assets/icons/iconfont.css'
-import 'view-design/dist/styles/iview.css';
-import VueCodeMirror from 'vue-codemirror'
-import 'codemirror/lib/codemirror.css'
-Vue.use(VueCodeMirror)
-// 实际打包时应该不引入mock
-/* eslint-disable */
-// if (process.env.NODE_ENV !== 'production') require('@/mock')
+import store from './store/'
+import i18n from './locales'
+import { VueAxios } from './utils/request'
+import ProLayout, { PageHeaderWrapper } from '@ant-design-vue/pro-layout'
+import themePluginConfig from '../config/themePluginConfig'
 
-Vue.use(ViewUI, {
-  i18n: (key, value) => i18n.t(key, value)
-})
-/**
- * @description 注册admin内置插件
- */
-installPlugin(Vue)
-/**
- * @description 生产环境关掉提示
- */
+// mock
+// WARNING: `mockjs` NOT SUPPORT `IE` PLEASE DO NOT USE IN `production` ENV.
+import './mock'
+
+import bootstrap from './core/bootstrap'
+import './core/lazy_use'
+// import './permission' // permission control
+import './utils/filter' // global filter
+import './global.less'
+
 Vue.config.productionTip = false
-/**
- * @description 全局注册应用配置
- */
-Vue.prototype.$config = config
-/**
- * 注册指令
- */
-importDirective(Vue)
 
-/* eslint-disable no-new */
+// mount axios to `Vue.$http` and `this.$http`
+Vue.use(VueAxios)
+Vue.component('pro-layout', ProLayout)
+Vue.component('page-header-wrapper', PageHeaderWrapper)
+
+window.umi_plugin_ant_themeVar = themePluginConfig.theme
+
 new Vue({
-  el: '#app',
   router,
-  i18n,
   store,
+  i18n,
+  created: bootstrap,
   render: h => h(App)
-})
+}).$mount('#app')
