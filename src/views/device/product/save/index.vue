@@ -17,28 +17,29 @@
               </a-button>
             </template>
             <a-descriptions-item label="产品ID" :span="1">
-              {{ 1 }}
+              {{ baseInfo.id }}
             </a-descriptions-item>
             <a-descriptions-item label="所属品类" :span="1">
-              Prepaid
+              {{ baseInfo.classifiedName }}
             </a-descriptions-item>
             <a-descriptions-item label="所属机构" :span="1">
-              YES
+              {{ baseInfo.orgName }}
             </a-descriptions-item>
             <a-descriptions-item label="消息协议" :span="1">
-              2018-04-24 18:00:00
+              {{ baseInfo.protocolName || baseInfo.protocolId }}
             </a-descriptions-item>
             <a-descriptions-item label="链接协议" :span="1">
-              2019-04-24 18:00:00
+              {{ baseInfo.transportProtocol }}
             </a-descriptions-item>
             <a-descriptions-item label="设备类型" :span="1">
-              <a-badge status="processing" text="Running" />
+              {{ (baseInfo.deviceType || {}).text }}
+              <!-- <a-badge status="processing" text="Running" /> -->
             </a-descriptions-item>
             <a-descriptions-item label="说明" :span="2">
-              $80.00
+              {{ baseInfo.describe }}
             </a-descriptions-item>
           </a-descriptions>
-          <template v-if="true">
+          <template v-if="configurationInfo.length">
             <a-descriptions>
               <template v-slot:title>
                 配置
@@ -46,18 +47,24 @@
                 </a-button>
               </template>
             </a-descriptions>
-            <div>
-              <h3>{{ "摄像头配置" }}</h3>
+            <div v-for="(item, index) in configurationInfo" :key="'configurationInfo' + index">
+              <h3>{{ item.name }}</h3>
               <a-descriptions bordered :column="2">
-                <a-descriptions-item label="产品ID" :span="1">
-                  {{ 1 }}
+                <a-descriptions-item
+                  v-for="(ele, inx) in item.properties"
+                  :key="ele.name + inx"
+                  :span="1"
+                >
+                  <template v-slot:label>
+                    <div>
+                      <span :style="{ marginRight: '20px' }">{{ ele.name }}</span>
+                      <a-tooltip :title="ele.description">
+                        <a-icon type="question-circle-o" />
+                      </a-tooltip>
+                    </div>
+                  </template>
                 </a-descriptions-item>
-                <a-descriptions-item label="所属品类" :span="1">
-                  Prepaid
-                </a-descriptions-item>
-                <a-descriptions-item label="说明" :span="2">
-                  $80.00
-                </a-descriptions-item>
+
               </a-descriptions>
             </div>
           </template>
@@ -66,7 +73,7 @@
           <pro-pyh-model></pro-pyh-model>
         </a-tab-pane>
         <a-tab-pane key="warnSetting" tab="告警设置">
-          <device-alarm></device-alarm>
+          <device-alarm :target="'product'"></device-alarm>
         </a-tab-pane>
       </a-tabs>
     </a-card>
@@ -81,9 +88,16 @@
   import ProBaseInfo from '../components/ProBaseInfo'
   import ProPyhModel from './ProPyhModel'
   import DeviceAlarm from '@/views/device/alarm'
-
+  import { mapGetters } from 'vuex'
+  import apis from '@/api'
   export default {
     name: 'ProductDetail',
+    props: {
+      id: {
+        type: [ String || Number ],
+        default: 0
+      }
+    },
     components: {
       ComDrawer,
       ProBaseInfo,
@@ -92,14 +106,44 @@
     },
     data () {
       return {
+        baseInfo: {},
+        configurationInfo: [],
         title: '',
         showDrawer: false,
-        form: this.$form.createForm(this, { name: 'productAdd' })
+        form: this.$form.createForm(this, { name: 'ProductDetailTable' })
       }
     },
+    mounted () {
+      this.GetData()
+    },
+    watch: {
+      productAllList: {
+        handler (newVal) {
+          if (newVal) {
+            this.GetData()
+          }
+        }
+      }
+    },
+    computed: {
+      ...mapGetters('device', ['productDetailData', 'productAllList'])
+    },
     methods: {
+      GetData () {
+        if (!this.productDetailData(this.id).length) {
+          return
+        }
+        this.baseInfo = this.productDetailData(this.id)[0]
+        const { id } = this.baseInfo
+        apis.deviceProduct.GetConfiguration(id)
+          .then(res => {
+            if (res.status === 200) {
+              this.configurationInfo = res.result
+            }
+          }).catch()
+      },
       callback (key) {
-        console.log(key)
+        // console.log('key', key)
       },
       editProduct () {
         this.title = '编辑产品'

@@ -4,9 +4,12 @@
       <div class="page-header-extra">
         <div class="content">
           <div class="content-status">
-            <a-badge status="success" />已发布
+            <a-badge
+              :style="{ marginLeft: '20px' }"
+              :status="getState === 0 ? 'error' : 'success' "
+            />{{ getState === 0 ? "未发布" : "已发布" }}
             <a-button type="link">
-              停用
+              {{ getState === 0 ? "发布" : "停用" }}
             </a-button>
           </div>
           <div class="content-restart">
@@ -19,7 +22,7 @@
       <div class="page-header-product-num">
         <div class="content">
           <div class="content-title">
-            设备数量 1
+            设备数量 {{ deviceNum }}
             <a-button type="link">
               查看
             </a-button>
@@ -44,20 +47,20 @@
         </div>
       </a-card>
       <div class="ant-pro-pages-list-applications-filterCardList">
-        <a-list :loading="loading" :data-source="data" :grid="{ gutter: 24, xl: 4, lg: 3, md: 3, sm: 2, xs: 1 }" style="margin-top: 24px;">
-          <a-list-item slot="renderItem" slot-scope="item">
-            <a-card :body-style="{ paddingBottom: 20 }" hoverable>
-              <a-card-meta :title="item.title">
+        <a-list :loading="loading" :data-source="productAllList" :grid="{ gutter: 24, xl: 4, lg: 3, md: 3, sm: 2, xs: 1 }" style="margin-top: 24px;">
+          <a-list-item slot="renderItem" slot-scope="item" :key="item.id">
+            <a-card :body-style="{ paddingBottom: '20px' }" :hoverable="true">
+              <a-card-meta :title="item.name">
                 <template slot="avatar">
-                  <a-avatar size="small" :src="item.avatar" style="width: 40px; height: 40px; line-height: 40px; font-size: 18px;"/>
+                  <a-avatar size="small" :src="item.photoUrl ? item.photoUrl : require('../../../assets/product_avater.png')" style="width: 40px; height: 40px; line-height: 40px; font-size: 18px;"/>
                 </template>
                 <template slot="description">
-                  www.instagram.com
+                  {{ item.describe }}
                 </template>
               </a-card-meta>
               <template slot="actions">
                 <a-tooltip title="查看">
-                  <a-icon type="eye" @click="() => { $router.push({ path: '/device/product/save/2' }) }"/>
+                  <a-icon type="eye" @click="() => $router.push({ path: `/device/product/save/${item.id}` })"/>
                 </a-tooltip>
                 <a-tooltip title="编辑">
                   <a-icon type="edit" />
@@ -70,23 +73,40 @@
                     <a-icon type="ellipsis" />
                   </a>
                   <a-menu slot="overlay">
-                    <a-menu-item>
-                      <a-button type="link">
-                        <a-icon type="close" />
-                        <a href="javascript:;">停用</a>
-                      </a-button>
+                    <a-menu-item :key="'manage'">
+                      <a-popconfirm
+                        placement="topRight"
+                        :title="item.state !== 0 ? '确定停用此组件吗？' : '确定发布此组件吗？'"
+                        @confirm="manageProduct(item.state, item)"
+                      >
+                        <a-button :icon="item.state !== 0 ? 'close' : 'check'" type="link">
+                          {{ item.state !== 0 ? '停用' : '发布' }}
+                        </a-button>
+                      </a-popconfirm>
                     </a-menu-item>
-                    <a-menu-item>
-                      <a-button type="link">
-                        <a-icon type="stop" />
-                        <a href="javascript:;">删除</a>
-                      </a-button>
+                    <a-menu-item v-if="item.state === 0" :key="2">
+                      <a-popconfirm
+                        placement="topRight"
+                        :title="'确定删除此组件吗？'"
+                        @confirm="delProduct(item.state, item)"
+                      >
+                        <a-button icon="delete" type="link">
+                          删除
+                        </a-button>
+                      </a-popconfirm>
+                    </a-menu-item>
+                    <a-menu-item v-else :key="'del'">
+                      <a-tooltip placement="bottom" title="该产品已发布，无法删除">
+                        <a-utton icon="stop" type="link">
+                          删除
+                        </a-utton>
+                      </a-tooltip>
                     </a-menu-item>
                   </a-menu>
                 </a-dropdown>
               </template>
               <div class="">
-                <card-info active-user="100" new-user="999"></card-info>
+                <card-info :product-num="deviceCount[item.id]" :product-state="item.state" :product-type="item.deviceType.text"></card-info>
               </div>
             </a-card>
           </a-list-item>
@@ -98,31 +118,26 @@
 </template>
 
 <script>
-import { getServiceList } from '@/api/manage'
 import CardInfo from './components/CardInfo'
 import ComSearchForm from '@/components/SearchForm'
-
+// import apis from '@/api'
+import { tableMixin } from '@/core/mixins/tableMixin'
+// import { HandleProductList } from './service'
+import { mapActions, mapGetters } from 'vuex'
 export default {
   name: 'DeviceProduct',
+  mixins: [tableMixin],
   components: {
     CardInfo,
     ComSearchForm
   },
   data () {
     return {
-      // 加载数据方法 必须为 Promise 对象
-      loadData: parameter => {
-        const requestParameters = Object.assign({}, parameter, this.queryParam)
-        console.log('loadData request parameters:', requestParameters)
-        return getServiceList(requestParameters)
-          .then(res => {
-            return res.result
-          })
-      },
+      // productAllList: [],
+      // deviceCount: {},
+      deviceNum: 10,
       selectedRowKeys: [],
       selectedRows: [],
-      data: [],
-      loading: true,
       formItems: [
         {
           label: '产品名称',
@@ -190,11 +205,29 @@ export default {
             mode: 'tags'
           }
         }
-      ]
+      ],
+      searchParam: { pageSize: 8, terms: location?.query?.terms, sorts: { field: 'id', order: 'desc' } }
 
     }
   },
+  watch: {
+    $route: {
+      handler (newRoute, oldRoute) {
+        if (this.$route.path.includes('/device/product/save')) {
+          const params = this.$route.params.id
+          this.deviceNum = this.deviceCount[params]
+        }
+      }
+    },
+    deviceCount (newVal, oldVal) {
+      if (newVal) {
+        const params = this.$route.params.id
+        this.deviceNum = this.deviceCount[params]
+      }
+    }
+  },
   computed: {
+    ...mapGetters('device', ['productAllList', 'deviceCount']),
     rowSelection () {
       return {
         selectedRowKeys: this.selectedRowKeys,
@@ -203,28 +236,67 @@ export default {
     },
     GetMetaTitle () {
       if (this.$route.path.includes('/device/product/save')) {
-        return this.$route.params.id
+        return `产品：${this.$route.params.id}`
       }
-      return this.$route.meta.title || ''
+      // return this.$route.meta.title || ''
+      return '产品管理'
     },
     GetDetailStatus () {
-      console.log(this.$route.path.includes('/device/product/save'))
       return this.$route.path.includes('/device/product/save')
     },
     GetRouteShow () {
       return this.$route.path === '/device/product'
+    },
+    // eslint-disable-next-line vue/return-in-computed-property
+    getState () {
+      if (this.$route.path.includes('/device/product/save')) {
+        const data = this.productAllList.length ? this.productAllList.filter(i => i.id === this.$route.params.id)[0] : {}
+        if (!Object.keys(data).length) {
+          return ''
+        }
+        return data.state
+      }
     }
   },
   mounted () {
-    this.getList()
+    this.getProductList()
   },
   methods: {
-    getList () {
-      this.$http.get('/list/article', { params: { count: 8 } }).then(res => {
-        console.log('res', res)
-        this.data = res.result
+    ...mapActions('device', ['getProductAllList', 'getDeviceCount']),
+    async getProductList () {
+      if (this.productAllList.length !== 0) {
         this.loading = false
+        return
+      }
+      const result = await this.getProductAllList({
+        pageSize: this.pageSize,
+        terms: this.searchParam.terms,
+        sorts: this.searchParam.sorts
       })
+      if (result && result !== undefined) {
+        await this.getDeviceCount().then(result => {
+          if (result) {
+            this.loading = false
+          }
+        })
+        // const res = await this.getDeviceCount()
+        // if (res) {
+        //   this.loading = false
+        //   console.log(this.deviceCount['test'])
+        // }
+      }
+      // apis.deviceProduct.GetProductList({
+      //   pageSize: this.pageSize,
+      //   terms: this.searchParam.terms,
+      //   sorts: this.searchParam.sorts
+      // }).then(async (res) => {
+      //   const resolve = await HandleProductList(res)
+      //   this.productAllList = resolve.productData
+      //   this.deviceCount = resolve.deviceCount
+      //   this.loading = false
+      // }).catch(() => {
+      //   this.loading = false
+      // })
     },
     handleAdd () {
       this.$router.push({
@@ -234,6 +306,20 @@ export default {
     onSelectChange (selectedRowKeys, selectedRows) {
       this.selectedRowKeys = selectedRowKeys
       this.selectedRows = selectedRows
+    },
+    manageProduct (state, item) {
+      if (state === 0) {
+        // deploy(item)
+      } else {
+        // unDeploy(item)
+      }
+    },
+    delProduct (state, item) {
+      if (item.state === 0 && Number(this.deviceCount[item.id]) === 0) {
+        // handleDelete(item);
+      } else {
+        this.$message.error('产品以发布，无法删除')
+      }
     }
   }
 }
@@ -244,7 +330,7 @@ export default {
     justify-content: flex-start;
   }
   /deep/ .ant-page-header-heading-title {
-    flex-grow: 5;
+    flex-grow: 0;
   }
   /deep/ .ant-page-header-heading-extra {
     flex-grow: 5;

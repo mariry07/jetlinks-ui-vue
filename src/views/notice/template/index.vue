@@ -6,14 +6,11 @@
           <standard-form-row :title="'组件类型'" :block="true" :styles="{paddingBottom: '11px'}">
             <a-form-item>
               <tag-select :expandable="true">
-                <a-checkable-tag v-model="checked1" >
-                  Tag1
-                </a-checkable-tag>
-                <a-checkable-tag v-model="checked2" >
-                  Tag2
-                </a-checkable-tag>
-                <a-checkable-tag v-model="checked3" >
-                  Tag3
+                <a-checkable-tag
+                  v-for="(item, index) in types"
+                  :key="item.id + index"
+                >
+                  {{ item.name }}
                 </a-checkable-tag>
               </tag-select>
             </a-form-item>
@@ -38,7 +35,7 @@
         <a-button
           type="primary"
           :style="{ marginBottom: '16px' }"
-          @click="setSaveVisible"
+          @click="addConfigList"
         >
           新建
         </a-button>
@@ -52,6 +49,7 @@
         <a-upload
           :showUploadList="false"
           :accept="'.json'"
+          :before-upload="beforeUpload"
         >
           <a-button>
             <a-icon type="upload" />导入配置
@@ -82,19 +80,10 @@
 </template>
 
 <script>
+  import apis from '@/api'
   import StandardFormRow from '../components/standard-form-row'
   import TagSelect from '../components/tag-select'
   import SaveModal from './save'
-
-  const data = [
-    {
-      key: 'id',
-      id: 'reactor-http-nio-6',
-      name: 'org',
-      type: 'ERROR',
-      provider: 'jetlinks-platform'
-    }
-  ]
 
   export default {
     name: 'NoticeTemplate',
@@ -129,6 +118,8 @@
             <div>
               <a
                 onClick={() => {
+                  this.ModalData = record
+                  this.ModalVisible = true
                 }}
               >
                 编辑
@@ -153,22 +144,73 @@
         }
       ]
       return {
-        checked1: false,
-        checked2: false,
-        checked3: false,
-        loading: false,
+        types: [],
+        loading: true,
         columns,
-        data,
+        data: [],
         ModalVisible: false,
         ModalData: {}
       }
     },
+    mounted () {
+      this.GetData()
+    },
     methods: {
-      setSaveVisible (data) {
+      GetData () {
+        this.getTypes()
+        this.getLists()
+      },
+      getTypes () {
+        apis.noticeConfig.getConfigTypes()
+          .then(res => {
+            if (res.status === 200) {
+              this.types = res.result
+            }
+          })
+      },
+      getLists () {
+        apis.noticeTemplate.getTemplateLists()
+          .then(res => {
+            if (res.status === 200) {
+              this.data = [ ...res.result.data ]
+              this.loading = false
+            }
+          })
+      },
+      beforeUpload (file) {
+        const reader = new FileReader()
+        reader.readAsText(file)
+        reader.onload = (result) => {
+          try {
+            // console.log('result.target.result', result.target.result)
+            this.submitData(JSON.parse(result.target.result))
+          } catch (error) {
+            this.$message.error('文件格式错误')
+          }
+        }
+      },
+      addConfigList (data) {
         this.ModalVisible = true
         this.ModalData = {}
       },
+      deleteConfigList (data) {
+        this.loading = true
+        apis.noticeConfig.deleteConfigLists(data.id)
+          .then(res => {
+            if (res.status === 200) {
+              this.getLists()
+              this.loading = false
+            }
+          })
+      },
       submitData (data) {
+        apis.noticeConfig.addConfigLists(data)
+          .then(res => {
+            if (res.status === 200) {
+              this.$message.success('添加成功')
+              this.getLists()
+            }
+          })
         this.ModalVisible = false
         // 提交数据XXX
       }

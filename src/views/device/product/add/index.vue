@@ -2,19 +2,18 @@
   <a-card :bordered="false" title="基本信息">
     <a-row style="margin-bottom:20px">
       <a-col :xs="2" :sm="24" :md="24" :lg="12" :xl="13">
-        <pro-base-info :form="form"></pro-base-info>
+        <pro-base-info ref="ProBaseInfoForm"></pro-base-info>
       </a-col>
       <a-col :xs="2" :sm="24" :md="24" :lg="12" :xl="11">
         <div >
           <div>图标</div>
           <div>
-            <a-avatar :size="144" :src="require('../../../../assets/product_avater.png')" />
+            <a-avatar :size="144" :src=" photoUrl ? photoUrl:require('../../../../assets/product_avater.png')" />
           </div>
           <div style="margin-top:10px;margin-left:20px">
             <a-upload
-              name="file"
-              :multiple="true"
-              action="https://www.mocky.io/v2/5cc8019d300000980a055e76"
+              v-bind="uploadOptions"
+              @change="uploadAvatar"
             >
               <a-button> <a-icon type="upload" /> 更换图片 </a-button>
             </a-upload>
@@ -37,22 +36,28 @@
       }"
     >
       <a-button style="margin-right:8px" @click="() => { $router.push({ path:`/device/product` }) }">返回</a-button>
-      <a-button type="primary">保存</a-button>
+      <a-button type="primary" @click="SaveProduct">保存</a-button>
     </div>
   </a-card>
 </template>
 
 <script>
 import ProBaseInfo from '../components/ProBaseInfo'
+import { uploadMixin } from '@/core/mixins/uploadMixin'
 
 export default {
   name: 'AddProduct',
+  mixins: [uploadMixin],
   components: {
     ProBaseInfo
   },
   data () {
     return {
-      form: this.$form.createForm(this, { name: 'productAdd' })
+    }
+  },
+  methods: {
+    SaveProduct () {
+      this.$refs.ProBaseInfoForm.addProduct(this.photoUrl)
     }
   }
 }

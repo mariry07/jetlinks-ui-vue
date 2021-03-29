@@ -54,7 +54,6 @@
     },
     computed: {
       GetRequestTime () {
-        console.log(this.data.requestTime)
         return moment(this.data.requestTime).format('YYYY-MM-DD HH:mm:ss')
       }
     },

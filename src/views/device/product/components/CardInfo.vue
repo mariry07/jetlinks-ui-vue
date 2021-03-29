@@ -2,15 +2,15 @@
   <div class="cardInfo">
     <div>
       <p >设备数量</p>
-      <p>{{ activeUser }}</p>
+      <p>{{ productNum }}</p>
     </div>
     <div>
-      <p>活跃用户</p>
-      <p><a-badge status="success" />{{ activeUser }}</p>
+      <p>发布状态</p>
+      <p><a-badge :status="productState === 0 ? 'error' :'success'" />{{ productState === 0 ? "未发布" : "已发布" }}</p>
     </div>
     <div>
-      <p>新增用户</p>
-      <p style="font-size: 14px; font-weight: 600;">{{ newUser }}</p>
+      <p>产品类型</p>
+      <p style="font-size: 14px; font-weight: 600;">{{ productType }}</p>
     </div>
   </div>
 </template>
@@ -19,11 +19,15 @@
 export default {
   name: 'CardInfo',
   props: {
-    activeUser: {
+    productNum: {
+      type: [String, Number],
+      default: 10
+    },
+    productState: {
       type: [String, Number],
       default: 0
     },
-    newUser: {
+    productType: {
       type: [String, Number],
       default: 0
     }

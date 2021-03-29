@@ -5,11 +5,11 @@
         <div class="header">
           <a href="/">
             <img src="~@/assets/logo.svg" class="logo" alt="logo">
-            <span class="title">Ant Design</span>
+            <span class="title">物联网平台</span>
           </a>
         </div>
         <div class="desc">
-          Ant Design 是西湖区最具影响力的 Web 设计规范
+          JetLinks 是设备管理,多协议适配,数据收集,规则引擎,快速构建物联网相关业务系统
         </div>
       </div>
 

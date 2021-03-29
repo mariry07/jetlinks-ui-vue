@@ -10,9 +10,20 @@
         </div>
         <div class="StandardTable">
           <a-table
+            :rowKey="record => record.id"
             :loading="loading"
             :columns="columns"
             :data-source="data"
+            :pagination="{
+              current: current+1,
+              total: total,
+              pageSize: pageSize,
+              showQuickJumper: true,
+              showSizeChanger: true,
+              pageSizeOptions: ['10', '20', '50', '100'],
+              showTotal:total => `共${total}条记录
+                                第${current + 1}/${Math.ceil(total / pageSize) }页`
+            }"
           >
           </a-table>
         </div>
@@ -21,6 +32,7 @@
     <save-drawer
       :data="DrawerData"
       :visible="DrawerVisible"
+      @submitData="submitData"
       @onClose="() => {
         DrawerVisible = false
         DrawerData = {}
@@ -30,22 +42,16 @@
 </template>
 
 <script>
+  import apis from '@/api'
+  import { tableMixin } from '@/core/mixins/tableMixin'
   import ComSearchForm from '@/components/SearchForm'
   import SaveDrawer from './save'
-
-  const data = [
-    {
-      key: 'id',
-      id: '1',
-      name: '1',
-      state: 1,
-      description: '1',
-      actions: ''
-    }
-  ]
+  // import { HandleProtocolList } from './service'
+  // import { ExixtKeys } from '@/utils/util'
 
   export default {
     name: 'NetworkProtocol',
+    mixins: [tableMixin],
     components: {
       ComSearchForm,
       SaveDrawer
@@ -84,7 +90,7 @@
                     <a>重新发布</a>
                   </a-popconfirm>
                 ) : (
-                <a-popconfirm title="确认删除？" >
+                <a-popconfirm title="确认删除？" onConfirm={() => this.delete(record)}>
                   <a>删除</a>
                 </a-popconfirm>
               ) }
@@ -103,7 +109,6 @@
         }
       ]
       return {
-        loading: false,
         formItems: [
           {
             label: '协议名称',
@@ -112,19 +117,44 @@
           }
         ],
         columns,
-        data,
+        data: [],
         DrawerVisible: false,
         DrawerData: {}
       }
     },
     methods: {
+      async GetData () {
+        const res = await apis.networkProtocol.GetProtocolList({
+          pageSize: this.pageSize
+        })
+        // const handleData = HandleProtocolList(res)
+        // this.data = handleData.data
+        this.data = res.result.data
+        this.loading = false
+      },
       edit (data) {
         this.DrawerVisible = true
         this.DrawerData = data
       },
+      delete (data) {
+        apis.networkProtocol.deleteProtocolList(data.id)
+          .then(res => {
+            if (res.status === 200) {
+              this.GetData()
+            }
+          }).catch(err => this.$message.error(err))
+      },
       submitData (data) {
         this.DrawerVisible = false
+        this.DrawerData = {}
         // 提交数据XXX
+        apis.networkProtocol.editProtocolList(data)
+          .then(res => {
+            if (res.status === 200) {
+              this.$message.success('更新成功')
+              this.GetData()
+            }
+          }).catch(err => this.$message.error(err))
       }
     }
   }

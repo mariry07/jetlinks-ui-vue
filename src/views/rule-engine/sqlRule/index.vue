@@ -27,29 +27,40 @@
       </div>
       <div class="StandardTable">
         <a-table
+          rowKey="id"
           :loading="loading"
           :columns="columns"
           :data-source="data"
+          :pagination="{
+            current: current+1,
+            total: total,
+            pageSize: pageSize,
+            showQuickJumper: true,
+            showSizeChanger: true,
+            pageSizeOptions: ['10', '20', '50', '100'],
+            showTotal:total => `共${total}条记录
+                              第${current + 1}/${Math.ceil(total / pageSize) }页`
+          }"
+          @change="onTableChange"
         >
         </a-table>
       </div>
     </a-card>
     <save-drawer
       :visible="DrawerVisible"
-      :data="DrawerData"
-      @onClose="() => {
-        DrawerVisible = false
-        DrawerData= {}
-      }"
+      :dataSource="DrawerData"
+      @onClose="onClose"
     >
     </save-drawer>
   </page-header-wrapper>
 </template>
 
 <script>
+  import moment from 'moment'
+  import { tableMixin } from '@/core/mixins/tableMixin'
+  import apis from '@/api/index.js'
   import ComSearchForm from '@/components/SearchForm'
   import SaveDrawer from './save'
-  import moment from 'moment'
   const data = [
     {
       key: 'id',
@@ -74,6 +85,7 @@
 
   export default {
     name: 'RuleEngineSqlrule',
+    mixins: [tableMixin],
     components: {
       ComSearchForm,
       SaveDrawer
@@ -106,7 +118,10 @@
           width: '25%',
           customRender: (text, record) => (
             <div>
-              <a onClick={() => {}}>编辑</a>
+              <a onClick={() => {
+                this.DrawerVisible = true
+                this.DrawerData = record
+              }}>编辑</a>
               <a-divider type="vertical" />
               {record.state?.value === 'started' ? (
                 <span>
@@ -120,7 +135,7 @@
                       <a>启动</a>
                     </a-popconfirm>
                     <a-divider type="vertical" />
-                    <a-popconfirm title="确认删除?" >
+                    <a-popconfirm title="确认删除?" onConfirm={() => this.delete(record)}>
                       <a>删除</a>
                     </a-popconfirm>
                   </span>
@@ -146,9 +161,42 @@
       }
     },
     methods: {
+      GetData () {
+        apis.ruleEngine.getSqlRuleLists({
+          pageSize: this.pageSize,
+          terms: { modelType: 'sql_rule' },
+          sorts: {
+            order: 'descend',
+            field: 'createTime'
+          }
+        }).then(res => {
+          if (res.status === 200) {
+            this.data = res.result.data
+            this.total = res.result.total
+            this.current = res.result.pageIndex
+            this.loading = false
+          }
+        })
+      },
+      onClose (result) {
+        if (result !== '') {
+          this.GetData()
+        }
+        this.DrawerVisible = false
+        this.DrawerData = {}
+      },
       setSaveVisible () {
         this.DrawerVisible = true
         this.DrawerData = {}
+      },
+      delete (data) {
+        apis.ruleEngine.deleteSqlRuleLists(data.id)
+          .then(res => {
+            if (res.status === 200) {
+              this.GetData()
+            }
+          })
+        // console.log('dele', data)
       }
     }
   }

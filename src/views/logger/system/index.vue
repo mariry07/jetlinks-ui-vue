@@ -3,13 +3,25 @@
     <a-card :bordered="false">
       <div class="tableList">
         <div>
-          <com-search-form :formItems="formItems"></com-search-form>
+          <com-search-form :formItems="formItems" @search="search"></com-search-form>
         </div>
         <div class="StandardTable">
           <a-table
+            :rowKey="record => record.id"
             :loading="loading"
             :columns="columns"
             :data-source="data"
+            :pagination="{
+              current: current+1,
+              total: total,
+              pageSize: pageSize,
+              showQuickJumper: true,
+              showSizeChanger: true,
+              pageSizeOptions: ['10', '20', '50', '100'],
+              showTotal:total => `共${total}条记录
+                                第${current + 1}/${Math.ceil(total / pageSize) }页`
+            }"
+            @change="onTableChange"
           >
           </a-table>
         </div>
@@ -29,24 +41,15 @@
 </template>
 
 <script>
+  import moment from 'moment'
+  import { tableMixin } from '@/core/mixins/tableMixin'
+  import apis from '@/api/index.js'
   import ComSearchForm from '@/components/SearchForm'
   import SaveModal from './save'
-  import moment from 'moment'
 
-  const data = [
-    {
-      key: 'id',
-      threadName: 'reactor-http-nio-6',
-      name: 'org.elasticsearch.deprecation.cluster.metadata.IndexTemplateMetadata',
-      level: 'ERROR',
-      exceptionStack: 'Index template device_gateway_monitor_template contains multiple typed mappings; templates in 8x will only support a single mapping',
-      'context.server': 'jetlinks-platform',
-      createTime: '2020-10-10'
-    }
-  ]
-
-  export default {
+export default {
     name: 'LoggerSystem',
+    mixins: [tableMixin],
     components: {
       ComSearchForm,
       SaveModal
@@ -103,7 +106,6 @@
         }
       ]
       return {
-        loading: false,
         formItems: [
           {
             label: '名称',
@@ -131,12 +133,29 @@
           }
         ],
         columns,
-        data,
         ModalVisible: false,
         ModalData: {}
       }
     },
     methods: {
+      GetData (terms) {
+        apis.loggerSystem.getSystemLists({
+          pageSize: this.pageSize,
+          pageIndex: this.current,
+          terms: terms || '',
+          sorts: {
+            field: 'createTime',
+            order: 'desc'
+          }
+        }).then(res => {
+          if (res.status === 200) {
+            this.data = res.result.data
+            this.total = res.result.total
+            this.current = res.result.pageIndex
+            this.loading = false
+          }
+        })
+      },
       setSaveVisible (data) {
         this.ModalVisible = true
         this.ModalData = data

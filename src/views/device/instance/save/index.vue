@@ -99,6 +99,10 @@
       showModal: {
         type: Boolean,
         default: false
+      },
+      deviceDetailData: {
+        type: Object,
+        default: () => {}
       }
     },
     computed: {

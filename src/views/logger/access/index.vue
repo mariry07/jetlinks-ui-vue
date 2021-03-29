@@ -3,13 +3,25 @@
     <a-card :bordered="false">
       <div class="tableList">
         <div>
-          <com-search-form :formItems="formItems"></com-search-form>
+          <com-search-form :formItems="formItems" @search="search"></com-search-form>
         </div>
         <div class="StandardTable">
           <a-table
+            :rowKey="record => record.id"
             :loading="loading"
             :columns="columns"
             :data-source="data"
+            :pagination="{
+              current: current+1,
+              total: total,
+              pageSize: pageSize,
+              showQuickJumper: true,
+              showSizeChanger: true,
+              pageSizeOptions: ['10', '20', '50', '100'],
+              showTotal:total => `共${total}条记录
+                                第${current + 1}/${Math.ceil(total / pageSize) }页`
+            }"
+            @change="onTableChange"
           >
           </a-table>
         </div>
@@ -29,28 +41,15 @@
 </template>
 
 <script>
-  import ComSearchForm from '@/components/SearchForm'
-  import SaveModal from './save'
   import moment from 'moment'
-
-  const data = [
-    {
-      key: 'id',
-      id: '1',
-      ip: '192.168.10.10',
-      url: '/network/config/_query/no-paging',
-      httpMethod: 'GET',
-      describe: '网络组件管理-使用GET方式分页动态查询(不返回总数)',
-      descend: '2020-10-10',
-      responseTime: 20,
-      requestTime: 3,
-      'context.username': '超级管理员',
-      httpHeaders: { 'referer': 'http://192.168.5.3:8000/', 'accept-language': 'zh-CN,zh;q=0.9', 'host': '127.0.0.1:8848', 'connection': 'close', 'cache-control': 'no-cache', 'accept-encoding': 'gzip, deflate', 'pragma': 'no-cache', 'accept': '*/*', 'user-agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/86.0.4240.111 Safari/537.36', 'x-access-token': '44b476eeaae2ff51112a6131348b3922' }
-    }
-  ]
+  import { tableMixin } from '@/core/mixins/tableMixin'
+  import apis from '@/api'
+  import SaveModal from './save'
+  import ComSearchForm from '@/components/SearchForm'
 
   export default {
     name: 'LoggerAccess',
+    mixins: [tableMixin],
     components: {
       ComSearchForm,
       SaveModal
@@ -135,7 +134,6 @@
         }
       ]
       return {
-        loading: false,
         formItems: [
           {
             label: '请求路径',
@@ -170,12 +168,32 @@
           }
         ],
         columns,
-        data,
         ModalVisible: false,
         ModalData: {}
       }
     },
+    mounted () {
+      this.GetData()
+    },
     methods: {
+      GetData (terms) {
+        apis.loggerAccess.getAccessLists({
+          pageSize: this.pageSize,
+          pageIndex: this.current,
+          terms: terms || '',
+          sorts: {
+            field: 'requestTime',
+            order: 'desc'
+          }
+        }).then(res => {
+          if (res.status === 200) {
+            this.data = res.result.data
+            this.total = res.result.total
+            this.current = res.result.pageIndex
+            this.loading = false
+          }
+        })
+      },
       setSaveVisible (data) {
         this.ModalVisible = true
         this.ModalData = data

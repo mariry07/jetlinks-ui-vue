@@ -9,26 +9,28 @@
           <a-spin :spinning="false">
             <a-row>
               <a-col :sm="7" :xs="24">
-                <a-select placeholder="选择产品" allowClear :style="{ width: '70%', marginTop: '7px' }" >
-                  <a-select-option value="jack">
-                    Jack
-                  </a-select-option>
-                  <a-select-option value="lucy">
-                    Lucy
+                <a-select
+                  placeholder="选择产品"
+                  allowClear
+                  :style="{ width: '70%', marginTop: '7px' }"
+                  @change="setProduct"
+                >
+                  <a-select-option v-for="(item,index) in productAllId" :key="'productAllId' + index" :value="item">
+                    {{ item }}
                   </a-select-option>
                 </a-select>
               </a-col>
               <a-col :sm="4" :xs="24">
-                <ins-info :badgeText="'全部设备'" :showData="100"></ins-info>
+                <ins-info :badgeText="'全部设备'" :showData="deviceStatus['total']"></ins-info>
               </a-col>
               <a-col :sm="4" :xs="24">
-                <ins-info :badgeStatus="'success'" :badgeText="'在线'" :showData="10"></ins-info>
+                <ins-info :badgeStatus="'success'" :badgeText="'在线'" :showData="deviceStatus['online']"></ins-info>
               </a-col>
               <a-col :sm="4" :xs="24">
-                <ins-info :badgeStatus="'success'" :badgeText="'离线'" :showData="10"></ins-info>
+                <ins-info :badgeStatus="'success'" :badgeText="'离线'" :showData="deviceStatus['offline']"></ins-info>
               </a-col>
               <a-col :sm="4" :xs="24">
-                <ins-info :badgeStatus="'success'" :badgeText="'未启用'" :showData="10"></ins-info>
+                <ins-info :badgeStatus="'success'" :badgeText="'未启用'" :showData="deviceStatus['notActive']"></ins-info>
               </a-col>
               <a-col :sm="1" :xs="24">
                 <a-tooltip title="刷新">
@@ -56,7 +58,7 @@
                     </a-button>
                   </a-menu-item>
                   <a-menu-item key="2">
-                    <a-button icon="upload" >批量导入设备</a-button>
+                    <a-button icon="upload" @click="() => { deviceImport = true }">批量导入设备</a-button>
                   </a-menu-item>
                   <a-menu-item v-if="true" key="3">
                     <a-button icon="delete" >
@@ -93,7 +95,7 @@
               <a-table
                 :loading="false"
                 :columns="attributeColumns"
-                :dataSource="showData"
+                :dataSource="data"
                 rowKey="id"
                 :row-selection="rowSelection"
               >
@@ -109,6 +111,12 @@
           @SetModalCancel="() => MobaleVisible = false"
         ></ins-save>
       </div>
+      <ins-import
+        v-if="deviceImport"
+        :visiable="deviceImport"
+        :productListId="productAllId"
+        @importCancel="importCancel"
+      ></ins-import>
     </page-header-wrapper>
     <router-view></router-view>
   </div>
@@ -116,24 +124,14 @@
 
 <script>
 
+  import moment from 'moment'
+  import { mapGetters } from 'vuex'
+  import { tableMixin } from '@/core/mixins/tableMixin'
+  import apis from '@/api'
   import InsInfo from './components/Info'
   import InsSearch from './search'
   import InsSave from './save'
-  import moment from 'moment'
-  const data = [
-    {
-      key: '1',
-      id: '1',
-      name: 'John Brown',
-      productName: 'productName',
-      registryTime: '2010-10-10',
-      state: {
-        text: '未启用',
-        value: 'notActive'
-      },
-      describe: 'describe'
-    }
-  ]
+  import InsImport from './operation/import'
   const statusMap = new Map()
   statusMap.set('在线', 'success')
   statusMap.set('离线', 'error')
@@ -156,10 +154,12 @@
 
   export default {
     name: 'DeviceInstance',
+    mixins: [tableMixin],
     components: {
       InsInfo,
       InsSearch,
-      InsSave
+      InsSave,
+      InsImport
     },
     data () {
       const columns = [
@@ -218,7 +218,7 @@
           customRender: (record) => (
             <div>
               <a onClick={() => {
-                this.$router.push({ path: `/device/instance/save/1` })
+                this.$router.push({ path: `/device/instance/save/${record.id}` })
               }}>
                 查看
               </a>
@@ -238,7 +238,9 @@
                   <a-divider type="vertical" />
                   <a-popconfirm
                     title="确认删除？"
-                    onConfirm={() => {}}
+                    onConfirm={() => {
+                      this.delDevice(record)
+                    }}
                   >
                     <a>删除</a>
                   </a-popconfirm>
@@ -256,14 +258,17 @@
         }
       ]
       return {
+        selectProduct: {},
+        deviceStatus: {},
         attributeColumns: columns,
-        showData: data,
         rowSelection,
         MobaleVisible: false,
-        MobalType: 'add'
+        MobalType: 'add',
+        deviceImport: false
       }
     },
     computed: {
+      ...mapGetters('device', ['productAllId']),
       GetMetaTitle () {
         if (this.$route.path.includes('/device/instance/save')) {
           return this.$route.params.id
@@ -274,10 +279,84 @@
         return this.$route.path.includes('/device/instance/save')
       }
     },
+    mounted () {
+      this.GetData()
+    },
     methods: {
+      GetData () {
+        if (this.productAllId.length === 0) {
+          apis.deviceInstance.getDeviceProductId({
+            paging: false
+          }).then(res => {
+            if (res.status === 200) {
+              this.$store.commit('device/SET_PRODUCT_ALLLIST', res.result)
+            }
+          })
+        }
+        this.GetDeviceData()
+      },
+      setProduct (value) {
+        this.$set(this.selectProduct, 'productId', value)
+        this.GetDeviceData(this.selectProduct)
+      },
+      // todo:每一次的新增删除都做请求，开销较大 待优化
+      GetDeviceData (params = {}) {
+        // 设备列表
+        apis.deviceInstance.getDeviceListData({
+          pageSize: this.pageSize,
+          terms: { ...params }
+        }).then(res => {
+          if (res.status === 200) {
+            // this.$set(this.)
+            this.data = res.result.data || []
+            this.deviceStatus['total'] = res.result.total || 0
+          }
+        }).catch()
+        // 未启用
+        apis.deviceInstance.getDeviceStatus({
+          terms: { state: 'notActive', ...params }
+        }).then(res => {
+          if (res.status === 200) {
+            // this.$set(this.)
+            // this.deviceStatus['notActive'] = res.result
+            this.$set(this.deviceStatus, 'notActive', res.result)
+          }
+        }).catch()
+        // 离线
+        apis.deviceInstance.getDeviceStatus({
+          terms: { state: 'offline', ...params }
+        }).then(res => {
+          if (res.status === 200) {
+            this.$set(this.deviceStatus, 'offline', res.result)
+          }
+        }).catch()
+        // 在线
+        apis.deviceInstance.getDeviceStatus({
+          terms: { state: 'online', ...params }
+        }).then(res => {
+          if (res.status === 200) {
+            // this.$set(this.)
+            this.$set(this.deviceStatus, 'online', res.result)
+            // this.deviceStatus['online'] = res.result
+          }
+        }).catch()
+      },
       AddInstance (item) {
         this.MobaleVisible = true
         this.MobalType = item ? 'edit' : 'add'
+      },
+      importCancel () {
+        this.deviceImport = false
+        this.GetDeviceData()
+      },
+      delDevice (record) {
+        const { id } = record
+        apis.deviceInstance.delDevice(id)
+          .then(res => {
+            if (res.status === 200) {
+              this.GetDeviceData(this.selectProduct)
+            }
+          })
       }
     }
   }

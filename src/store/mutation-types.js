@@ -1,4 +1,4 @@
-export const ACCESS_TOKEN = 'Access-Token'
+export const ACCESS_TOKEN = 'x-access-token'
 
 export const SIDEBAR_TYPE = 'sidebar_type'
 export const TOGGLE_MOBILE_TYPE = 'is_mobile'
@@ -21,4 +21,16 @@ export const CONTENT_WIDTH_TYPE = {
 export const NAV_THEME = {
   LIGHT: 'light',
   DARK: 'dark'
+}
+
+/**
+ * @description 产品相关 mutation-types
+ */
+export const PRODUCT = {
+  SET_PRODUCT_ALLLIST: 'all_list',
+  SET_DEVICE_NUM: 'device_num',
+  SET_PROTOCOL_UNITS: 'protocol_units',
+  SET_DEVICE_DETAIL: 'device_detail',
+  EDIT_PRODUCT_LIST: 'edit_product_list',
+  SET_NOTIFIER_TYPE: 'set_notifier_type'
 }

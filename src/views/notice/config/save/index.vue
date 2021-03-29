@@ -32,7 +32,7 @@
           @change="setType"
         >
           <a-select-option
-            v-for="(item, index) in typeItems"
+            v-for="(item, index) in types"
             :key="item + index"
             :value="item.id"
             :initialValue="item.name"
@@ -51,12 +51,21 @@
           }]"
           @change="setProvider"
         >
-          <a-select-option v-for="(item, index) in GetproviderItems(noticeType)" :key="item + index" :value="item.name">{{ item.name }}</a-select-option>
+          <a-select-option
+            v-for="(item, index) in GetproviderItems(noticeType)"
+            :key="item + index"
+            :value="item.id"
+          >
+            {{ item.name }}
+          </a-select-option>
         </a-select>
       </a-form-item>
-      <template v-if="noticeType === 'sms' && result.name">
-        <config-provide-item :data="result">
-
+      <template v-if="noticeType && typeMetas.name">
+        <config-provide-item
+          ref="provideItem"
+          :metaData="typeMetas"
+          :showData="configuration"
+        >
         </config-provide-item>
       </template>
     </a-form>
@@ -64,6 +73,7 @@
 </template>
 
 <script>
+  import apis from '@/api'
   import ConfigProvideItem from './ProvideItem'
   export default {
     name: 'CerSaveModal',
@@ -75,6 +85,10 @@
       data: {
         type: Object,
         default: () => {}
+      },
+      types: {
+        type: Array,
+        default: () => []
       }
     },
     components: {
@@ -83,53 +97,73 @@
     data () {
       return {
         form: this.$form.createForm(this, { name: 'CerSaveModalForm' }),
-        typeItems: [
-          { id: 'sms', name: '短信', providerInfos: [{ type: 'sms', id: 'aliyunSms', name: '阿里云短信服务' }, { type: 'sms', id: 'test', name: '测试' }] },
-          { id: 'email', name: '邮件', providerInfos: [{ type: 'email', id: 'embedded', name: '默认' }] },
-          { id: 'weixin', name: '微信', providerInfos: [{ type: 'weixin', id: 'corpMessage', name: '微信企业消息通知' }] },
-          { id: 'voice', name: '语音', providerInfos: [{ type: 'voice', id: 'aliyun', name: '阿里云' }] },
-          { id: 'dingTalk', name: '钉钉', providerInfos: [{ type: 'dingTalk', id: 'dingTalkMessage', name: '钉钉消息通知' }] }
-        ],
         noticeType: '',
-        result: {}
+        typeMetas: {},
+        configuration: {}
+      }
+    },
+    watch: {
+      data: {
+        handler (newVal, oldVal) {
+          if (Object.keys(newVal).length) {
+            this.initData(newVal)
+          }
+        }
       }
     },
     computed: {
-      GetproviderItems (type) {
+      GetproviderItems () {
         return function (type) {
-          return this.typeItems.find(v => v.id === this.noticeType)?.providerInfos || []
+          return this.types.find(v => v.id === type)?.providerInfos || []
         }
       }
     },
     methods: {
-      handleOk (e) {
-        this.$emit('submitData', 123)
+      initData (data) {
+        this.noticeType = data.type
+        this.setProvider(data.provider)
+        this.configuration = data.configuration
       },
-      handleCancel (e) {
+      clearData () {
         this.form.resetFields()
         this.noticeType = ''
-        this.result = {}
+        this.typeMetas = {}
+        this.configuration = {}
+      },
+      handleOk () {
+        const {
+          form: { validateFields }
+        } = this
+        const properties = this.$refs.provideItem.otherConfig
+        validateFields((err, fileds) => {
+          if (!err) {
+            const addData = {
+              ...fileds,
+              configuration: {
+                ...fileds.configuration,
+                properties
+              }
+            }
+            this.form.resetFields()
+            this.clearData()
+            this.$emit('submitData', addData)
+          }
+        })
+      },
+      handleCancel (e) {
+        this.clearData()
         this.$emit('close')
       },
       setType (value) {
         this.noticeType = value
       },
       setProvider (value) {
-        this.result = {
-          'name': '阿里云API配置',
-          'description': 'https://help.aliyun.com/document_detail/101300.html',
-          'scopes': [],
-          'properties': [{
-            'property': 'regionId',
-            'name': 'regionId',
-            'description': 'regionId',
-            'type': {
-              'name': '字符串',
-              'id': 'string',
-              'type': 'string'
-            },
-            'scopes': []
-          }, { 'property': 'accessKeyId', 'name': 'accessKeyId', 'description': '', 'type': { 'name': '字符串', 'id': 'string', 'type': 'string' }, 'scopes': [] }, { 'property': 'secret', 'name': 'secret', 'description': '', 'type': { 'name': '字符串', 'id': 'string', 'type': 'string' }, 'scopes': [] }] }
+        apis.noticeConfig.getConfigTypesMeta(this.noticeType, value)
+          .then(res => {
+            if (res.status === 200) {
+              this.typeMetas = res.result
+            }
+          })
       }
     }
   }

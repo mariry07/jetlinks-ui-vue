@@ -7,9 +7,8 @@
         </div>
         <div style="margin-top:10px;margin-left:10px">
           <a-upload
-            name="file"
-            :multiple="true"
-            action="https://www.mocky.io/v2/5cc8019d300000980a055e76"
+            v-bind="uploadOptions"
+            @change="uploadAvatar"
           >
             <a-button> <a-icon type="upload" /> 更换图片 </a-button>
           </a-upload>
@@ -42,9 +41,9 @@
     </a-form-item>
     <a-form-item label="所属品类">
       <a-cascader
-        :fieldNames="{label: 'name', value: 'id', children: 'children'}"
+        @click="setClassifiedData"
+        :field-names="{label: 'name', value: 'id', children: 'children'}"
         placeholder="点击选择品类"
-        option.initialValue="['zhejiang', 'hangzhou', 'xihu']"
         :options="classified"
         style="width: 100%"
         :popupVisible="false"
@@ -84,30 +83,40 @@
     </a-form-item>
     <a-form-item
       label="消息协议"
-      v-decorator="['messageProtocol', {
-        rules: [
-          { required: true, message: '请选择消息协议' }
-        ]
-      }]"
     >
-      <a-select style="width: 100%" placeholder="请选择消息协议">
-        <a-select-option v-for="i in 25" :key="(i + 9).toString(36) + i">
-          {{ (i + 9).toString(36) + i }}
+      <a-select
+        style="width: 100%"
+        placeholder="请选择消息协议"
+        v-decorator="['messageProtocol', {
+          rules: [
+            { required: true, message: '请选择消息协议' }
+          ]
+        }]"
+        @change="setMessage"
+      >
+        <a-select-option v-for="(item, index) in MessageOptions" :key="item.id + index" :value="item.id">
+          {{ item.name }}
         </a-select-option>
       </a-select>
     </a-form-item>
     <a-form-item
       label="传输协议"
-      v-decorator="['transportProtocol', {
-        rules: [
-          { required: true, message: '请选择传输协议' }
-        ]
-      }]"
     >
-      <a-select style="width: 100%" placeholder="请选择传输协议">
+      <a-select
+        style="width: 100%"
+        placeholder="请选择传输协议"
+        v-decorator="['transportProtocol', {
+          rules: [
+            { required: true, message: '请选择传输协议' }
+          ]
+        }]"
+      >
+        <a-select-option v-for="(item, index) in transportOptions" :key="item.id + index" :value="item.id">
+          {{ item.name }}
+        </a-select-option>
       </a-select>
     </a-form-item>
-    <a-form-item
+    <!-- <a-form-item
       v-decorator="['label', {
         rules: [
           { required: false }
@@ -122,69 +131,160 @@
       </span>
       <a-select style="width: 100%" placeholder="请选择传输协议">
       </a-select>
-    </a-form-item>
+    </a-form-item> -->
     <a-form-item
       label="设备类型"
-      v-decorator="['deviceType', {
-        rules: [
-          { required: true, message: '请选择设备类型' }
-        ]
-      }]"
     >
-      <a-radio-group name="radioGroup">
+      <a-radio-group
+        name="radioGroup"
+        @change="setDeviceType"
+        v-decorator="['deviceType', {
+          rules: [
+            { required: true, message: '请选择设备类型' }
+          ]
+        }]"
+      >
         <a-radio value="device">直连设备</a-radio>
         <a-radio value="childrenDevice">网关子设备</a-radio>
         <a-radio value="gateway">网关设备</a-radio>
       </a-radio-group>
     </a-form-item>
-    <a-form-item
-      label="描述"
-      v-decorator="['describe', {
-        rules: [
-          { required: false }
-        ]
-      }]"
-    >
-      <a-textarea placeholder="请输入描述" rows="4"/>
+    <a-form-item label="描述" >
+      <a-textarea
+        v-decorator="['describe', {
+          rules: [
+            { required: false }
+          ]
+        }]"
+        placeholder="请输入描述"
+        rows="4"
+      />
     </a-form-item>
+    <classfied :visiable="classifiedVisible" :chooseData="chooseData" @select="selectClassfied" @close="closeDrawer" ></classfied>
   </a-form>
 </template>
 
 <script>
+  import ProductAddClassfied from '../add/classified'
+  import { uploadMixin } from '@/core/mixins/uploadMixin'
+  import apis from '@/api'
   export default {
     name: 'ProBaseInfo',
+    mixins: [uploadMixin],
     props: {
       showIcon: {
         type: Boolean,
         default: false
-      },
-      form: {
-        type: Object,
-        required: true
       }
+    },
+    components: {
+      'classfied': ProductAddClassfied
     },
     data () {
       return {
-        classified: [
-          {
-            id: 'zhejiang',
-            name: 'Zhejiang',
+        form: this.$form.createForm(this, { name: 'ProBaseInfoTable' }),
+        classified: [],
+        classifiedVisible: false,
+        chooseData: {},
+        MessageOptions: [],
+        MessageType: '',
+        transportOptions: [],
+        transportType: '',
+        deviceType: '',
+        defaultMetadata: '{"events":[],"properties":[],"functions":[],"tags":[]}'
+
+      }
+    },
+    mounted () {
+      this.InitData()
+    },
+    watch: {
+      MessageType: {
+        async handler (newVal, oldVal) {
+          switch (newVal) {
+            case 'jetlinks.v1.0':
+              await apis.deviceProduct.GetProtocolTransports(this.MessageType).then(res => {
+                this.transportOptions = res.result
+              })
+              break
+            default:
+              break
+          }
+        }
+      }
+    },
+    methods: {
+      InitData () {
+        apis.deviceProduct.GetMessageList().then(res => {
+          this.MessageOptions = res.result
+        })
+      },
+      setClassifiedData () {
+        this.classifiedVisible = true
+      },
+      closeDrawer () {
+        this.classifiedVisible = false
+      },
+      selectClassfied (data) {
+        this.chooseData = data
+        this.classifiedVisible = false
+        this.classified = [{
+          name: data.superParentName,
+          id: data.categoryId[0],
+          children: [{
+            name: data.parentName,
+            id: data.categoryId[1],
             children: [
               {
-                id: 'hangzhou',
-                name: 'Hangzhou',
-                children: [
-                  {
-                    id: 'xihu',
-                    name: 'West Lake',
-                    code: 752100
-                  }
-                ]
+                name: data.name,
+                id: data.categoryId[2]
               }
             ]
+          }]
+        }]
+        this.form.setFieldsValue({ 'classifiedId': data.categoryId })
+      },
+      setMessage (value) {
+        this.MessageType = value
+      },
+      setDeviceType (e) {
+        this.deviceType = e.target.value
+      },
+      addProduct (photoUrl) {
+        const {
+          form: { validateFields }
+        } = this
+        validateFields((err, fileValue) => {
+          if (!err) {
+            const protocol = this.MessageOptions.find(i => i.id === fileValue.messageProtocol) || {}
+            const data = {
+              ...fileValue,
+              photoUrl: photoUrl || '',
+              orgId: '',
+              protocolName: protocol.name,
+              state: 0,
+              metadata: this.defaultMetadata,
+              classifiedId: this.chooseData.id,
+              classifiedName: this.chooseData.name
+            }
+            apis.deviceProduct.SaveProduct(data).then(res => {
+              if (res.status === 200) {
+                const { result } = res
+                const listData = []
+                listData.push(result)
+                this.$store.commit('device/SET_PRODUCT_ALLLIST', listData)
+                this.$router.push({
+                  path: `/device/product/save/${result.id}`
+                })
+              }
+            // eslint-disable-next-line handle-callback-err
+            }).catch(err => {
+              this.$message.info(err)
+            })
           }
-        ]
+        })
       }
+
     }
   }
 </script>

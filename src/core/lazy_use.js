@@ -48,7 +48,8 @@ import {
   // 新增的ui组件
   Cascader,
   TreeSelect,
-  AutoComplete
+  AutoComplete,
+  Collapse
 } from 'ant-design-vue'
 import Viser from 'viser-vue'
 // 新增的edit功能插件
@@ -105,6 +106,7 @@ Vue.use(Descriptions)
 Vue.use(Cascader)
 Vue.use(TreeSelect)
 Vue.use(AutoComplete)
+Vue.use(Collapse)
 
 Vue.prototype.$confirm = Modal.confirm
 Vue.prototype.$message = message

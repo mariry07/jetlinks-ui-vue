@@ -2,7 +2,7 @@
   <page-header-wrapper title="证书管理">
     <a-card :bordered="false">
       <div class="tableList">
-        <com-search-form :formItems="formItems"></com-search-form>
+        <com-search-form :formItems="formItems" @search="search"></com-search-form>
         <div class="tableListOperator">
           <a-button icon="plus" type="primary" @click="() => { ModalVisible = true }">
             新建
@@ -10,9 +10,21 @@
         </div>
         <div class="StandardTable">
           <a-table
+            rowKey="id"
             :loading="loading"
             :columns="columns"
             :data-source="data"
+            :pagination="{
+              current: current+1,
+              total: total,
+              pageSize: pageSize,
+              showQuickJumper: true,
+              showSizeChanger: true,
+              pageSizeOptions: ['10', '20', '50', '100'],
+              showTotal:total => `共${total}条记录
+                                第${current + 1}/${Math.ceil(total / pageSize) }页`
+            }"
+            @change="onTableChange"
           >
           </a-table>
         </div>
@@ -31,27 +43,14 @@
 </template>
 
 <script>
+  import apis from '@/api'
+  import { tableMixin } from '@/core/mixins/tableMixin'
   import ComSearchForm from '@/components/SearchForm'
   import SaveModal from './save'
 
-  const data = [
-    {
-      key: 'id',
-      name: '1',
-      id: '1',
-      instance: '1',
-      description: '1',
-      actions: {
-        alarmData: JSON.stringify({
-          alarmData: 'id',
-          description: '1'
-        })
-      }
-    }
-  ]
-
   export default {
     name: 'NetworkCertificate',
+    mixins: [tableMixin],
     components: {
       ComSearchForm,
       SaveModal
@@ -78,7 +77,7 @@
             <div>
               <a onClick={() => this.edit(record)}>编辑</a>
               <a-divider type="vertical" />
-              <a-popconfirm title="确认删除？">
+              <a-popconfirm title="确认删除？" onConfirm={() => this.delete(record)}>
                 <a>删除</a>
               </a-popconfirm>
             </div>
@@ -86,7 +85,7 @@
         }
       ]
       return {
-        loading: false,
+        loading: true,
         formItems: [
           {
             label: '名称',
@@ -104,19 +103,45 @@
           }
         ],
         columns,
-        data,
+        data: [],
         ModalVisible: false,
         ModalData: {}
       }
     },
     methods: {
+      GetData (terms) {
+        apis.networkCertificate.getCertificateLists({
+          pageSize: this.pageSize,
+          pageIndex: this.current,
+          terms: terms || ''
+        }).then(res => {
+          if (res.status === 200) {
+            this.data = res.result.data
+            this.loading = false
+          }
+        })
+      },
       edit (data) {
         this.ModalVisible = true
         this.ModalData = data
       },
+      delete (data) {
+        apis.networkCertificate.deleteCertificateLists(data.id)
+          .then(res => {
+            if (res.status === 200) {
+              this.GetData()
+            }
+          })
+      },
       submitData (data) {
         this.ModalVisible = false
-        // 提交数据XXX
+        this.ModalData = {}
+        apis.networkCertificate.addCertificateLists(data)
+          .then(res => {
+            if (res.status === 200) {
+              this.GetData()
+            }
+          })
       }
     }
   }

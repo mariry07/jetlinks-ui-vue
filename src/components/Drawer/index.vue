@@ -34,7 +34,6 @@
     },
     methods: {
       afterVisibleChange (val) {
-        console.log('visible', val)
       },
       onClose () {
         this.$emit('onClose', false)

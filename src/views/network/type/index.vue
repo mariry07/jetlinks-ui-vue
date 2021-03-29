@@ -6,14 +6,11 @@
           <standard-form-row title="组件类型" :block="true" :style="{ paddingBottom: '11px' }">
             <a-form-item>
               <tag-select :expandable="true">
-                <a-checkable-tag v-model="checked1" >
-                  Tag1
-                </a-checkable-tag>
-                <a-checkable-tag v-model="checked2" >
-                  Tag2
-                </a-checkable-tag>
-                <a-checkable-tag v-model="checked3" >
-                  Tag3
+                <a-checkable-tag
+                  v-for="(item, index) in types"
+                  :key="item.id + index"
+                >
+                  {{ item.name }}
                 </a-checkable-tag>
               </tag-select>
             </a-form-item>
@@ -40,8 +37,14 @@
             <a-button
               type="dashed"
               class="newButton"
+              @click="() => {
+                DrawerVisible = true
+                DrawerData = {}
+              }"
             >
-              <a-icon type="plus" />
+              <a-icon
+                type="plus"
+              />
               新增组件
             </a-button>
           </template>
@@ -51,16 +54,17 @@
               :bodyStyle="{ paddingBottom: '20px' }"
             >
               <template slot="actions">
-                <a-tooltip key="edit" title="编辑" @click="editDrawer">
+                <a-tooltip key="edit" title="编辑" @click="editComponent(item)">
                   <a-icon type="edit"/>
                 </a-tooltip>
                 <a-tooltip key="bug" title="调试" @click="DebugVisiable">
                   <a-icon type="bug" />
                 </a-tooltip>
-                <a-tooltip key="delete" title="删除">
+                <a-tooltip key="delete" title="删除" >
                   <a-popconfirm
                     placement="topRight"
                     title="确定删除此组件吗？"
+                    @confirm="deleteComponent(item)"
                   >
                     <a-icon type="close" />
                   </a-popconfirm>
@@ -106,7 +110,9 @@
     <save-drawer
       :data="DrawerData"
       :visible="DrawerVisible"
+      :types="types"
       :width="600"
+      @submitData="submitData"
       @onClose="() => {
         DrawerVisible = false
         DrawerData = {}
@@ -126,37 +132,12 @@
 </template>
 
 <script>
+  import apis from '@/api'
   import StandardFormRow from '@/components/StandardFormRow'
   import TagSelect from '@/components/TagSelect'
   import SaveDrawer from './save'
   import ComHide from '@/components/Hide'
   import SaveDebug from './save/debug'
-
-  const data = [
-    {
-      type: 'add'
-    },
-    {
-      avatar: '',
-      name: '123',
-      type: {
-        name: '22'
-      },
-      state: {
-        value: 'disabled'
-      }
-    },
-    {
-      avatar: '',
-      name: '123',
-      type: {
-        name: '22'
-      },
-      state: {
-        value: 'disabled'
-      }
-    }
-  ]
 
   export default {
     name: 'NetworkType',
@@ -169,9 +150,6 @@
     },
     data () {
       return {
-        checked1: false,
-        checked2: false,
-        checked3: false,
         loading: false,
         formItems: [
           {
@@ -180,7 +158,8 @@
             type: 'string'
           }
         ],
-        data,
+        data: [],
+        types: [],
         DrawerVisible: false,
         DrawerData: {},
         DebugVisible: false,
@@ -188,14 +167,61 @@
         debugClienType: 'MQTT_CLIENT'
       }
     },
+    mounted () {
+      this.GetData()
+    },
     methods: {
-      editDrawer (data) {
+      GetData () {
+        this.getTypes()
+        this.getLists()
+      },
+      getTypes () {
+        apis.networkType.getComponentTypes()
+          .then(res => {
+            if (res.status === 200) {
+              this.types = res.result
+            }
+          })
+      },
+      getLists () {
+        apis.networkType.getComponentLists({
+          paging: false,
+          sorts: {
+            field: 'id',
+            order: 'desc'
+          }
+        })
+          .then(res => {
+            if (res.status === 200) {
+              this.data = [ { type: 'add' }, ...res.result ]
+              this.loading = false
+            }
+          })
+      },
+      editComponent (data) {
         this.DrawerVisible = true
         this.DrawerData = data
       },
+      deleteComponent (data) {
+        apis.networkType.deleteCertificateList(data.id)
+          .then(res => {
+            if (res.status === 200) {
+              this.$message.success('删除成功')
+              this.GetData()
+            }
+          }).catch(err => this.$message.error(err))
+      },
       submitData (data) {
         this.DrawerVisible = false
+        this.DrawerData = {}
         // 提交数据XXX
+        apis.networkType.editCertificateList(data)
+          .then(res => {
+            if (res.status === 200) {
+              this.$message.success('更新成功')
+              this.GetData()
+            }
+          }).catch(err => this.$message.error(err))
       },
       DebugVisiable (data) {
         this.DebugVisible = true

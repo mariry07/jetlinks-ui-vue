@@ -1,5 +1,5 @@
 <template>
-  <a-spin tip="加载中..." :spinning="false">
+  <a-spin tip="加载中..." :spinning="loading">
     <page-header-wrapper
       :title="false"
       :tabList="tableList"
@@ -16,23 +16,26 @@
         <div class="deviceInsTitle">
           <div >
             <span :style="{paddingRight: '20px'}">
-              设备：123
+              {{ `设备：${GetDeviceId}` }}
             </span>
-            <a-badge status="success" text="在线"/>
-            <a-popconfirm title="确认让此设备断开连接？" >
-              <a>断开连接</a>
+            <a-badge :status="GetDeviceStatus" :text="GetDeviceStatusText"/>
+            <a-popconfirm v-if="GetDeviceStatus === 'success'" title="确认让此设备断开连接？" >
+              <a>{{ '断开连接' }}</a>
+            </a-popconfirm>
+            <a-popconfirm v-if="GetDeviceStatus === 'processing'" title="确认激活此设备？" >
+              <a>{{ '激活设备' }}</a>
             </a-popconfirm>
           </div>
           <div :style="{marginTop: '30px'}">
             <a-descriptions :column="4">
-              <a-descriptions-item label="ID">{{ 123 }}</a-descriptions-item>
+              <a-descriptions-item label="ID">{{ detailData.id }}</a-descriptions-item>
               <a-descriptions-item label="产品">
                 <div>
-                  {{ 123 }}
+                  {{ detailData.productId }}
                   <a
                     :style="{marginLeft: '10px'}"
                     @click="() => {
-                      router.push(`/device/product/save/${data.productId}`);
+                      router.push(`/device/product/save/${detailData.productId}`);
                     }"
                   >查看</a>
                 </div>
@@ -42,7 +45,7 @@
         </div>
       </template>
       <template v-if="ActiveTabKey ==='info' ">
-        <ins-editor-detail></ins-editor-detail>
+        <ins-editor-detail :data="detailData"></ins-editor-detail>
       </template>
       <template v-if="ActiveTabKey ==='status' ">
         <ins-editor-status></ins-editor-status>
@@ -54,7 +57,7 @@
         <ins-editor-log></ins-editor-log>
       </template>
       <template v-if="ActiveTabKey ==='alarm' ">
-        <device-alarm></device-alarm>
+        <device-alarm :target="'device'"></device-alarm>
       </template>
     </page-header-wrapper>
   </a-spin>
@@ -66,6 +69,12 @@
   import InsEditorFunction from './detail/Function'
   import InsEditorLog from './detail/Log'
   import DeviceAlarm from '../../alarm'
+  import { mapActions, mapGetters } from 'vuex'
+
+  const statusMap = new Map()
+  statusMap.set('online', 'success')
+  statusMap.set('offline', 'error')
+  statusMap.set('notActive', 'processing')
   export default {
     name: 'InsEditor',
     components: {
@@ -77,6 +86,8 @@
     },
     data () {
       return {
+        loading: true,
+        detailData: {},
         tableList: [
           {
             key: 'info',
@@ -108,10 +119,32 @@
           }
         ],
         ActiveTabKey: 'info'
-
+      }
+    },
+    mounted () {
+      const { id } = this.$route.params
+      this.getDeviceDetail(id).then(result => {
+        if (result) {
+          this.detailData = this.deviceDetailData
+          this.loading = false
+        }
+      })
+    },
+    computed: {
+      ...mapGetters('device', ['deviceDetailData']),
+      GetDeviceId () {
+        return this.$route.params.id
+      },
+      GetDeviceStatus () {
+        const status = this.detailData.state ? this.detailData.state.value : ''
+        return statusMap.get(status)
+      },
+      GetDeviceStatusText () {
+        return this.detailData.state ? this.detailData.state.text : ''
       }
     },
     methods: {
+      ...mapActions('device', ['getDeviceDetail']),
       onTabChange (key) {
         // if (!data.metadata) {
         //     message.error('请检查产品物模型');

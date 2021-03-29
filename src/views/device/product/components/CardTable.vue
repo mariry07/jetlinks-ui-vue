@@ -4,25 +4,50 @@
     style="width:100%;padding:10px"
   >
     <a-button slot="extra" type="primary" @click="addData">添加</a-button>
-    <a-table :columns="attributeColumns" :data-source="showData">
-      <template slot="operation">
+    <a-table rowKey="id" :columns="attributeColumns" :data-source="showData">
+      <!-- <template slot="operation">
         <a-button type="link" style="padding: 0;">编辑</a-button>
         <a-divider type="vertical" />
         <a-button type="link" style="padding: 0;">删除</a-button>
-      </template>
+      </template> -->
     </a-table>
-    <com-drawer :width="'500px'" :title="title" :visible="showDrawer" @onClose="onCloseDrawer">
+    <a-drawer
+      :width="'500px'"
+      :title="title"
+      :visible="showDrawer"
+      @close="onCloseDrawer"
+    >
       <template v-if="tabKey==='1'">
-        <define-attribute :form="form"></define-attribute>
+        <define-attribute
+          ref="attribute"
+          :tabKey="tabKey"
+          :edititem="edititem"
+          @onEditItem="onEditItem"
+        ></define-attribute>
       </template>
       <template v-if="tabKey==='2'">
-        <define-function :form="form"></define-function>
+        <define-function
+          ref="funcs"
+          :tabKey="tabKey"
+          :edititem="edititem"
+          @onEditItem="onEditItem"
+        ></define-function>
       </template>
       <template v-if="tabKey==='3'">
-        <define-event ></define-event>
+        <define-event
+          ref="events"
+          :tabKey="tabKey"
+          :edititem="edititem"
+          @onEditItem="onEditItem"
+        ></define-event>
       </template>
       <template v-if="tabKey==='4'">
-        <define-tags :form="form"></define-tags>
+        <define-tags
+          ref="tags"
+          :tabKey="tabKey"
+          :edititem="edititem"
+          @onEditItem="onEditItem"
+        ></define-tags>
       </template>
       <div
         :style="{
@@ -40,20 +65,20 @@
         <a-button :style="{ marginRight: '8px' }" @click="onCloseDrawer">
           关闭
         </a-button>
-        <a-button type="primary" >
+        <a-button type="primary" @click="submitData">
           保存
         </a-button>
       </div>
-    </com-drawer>
+    </a-drawer>
   </a-card>
 </template>
 
 <script>
   import ComDrawer from '@/components/Drawer'
-  import DefineAttribute from '@/pages/device/product/save/definition/attribute.vue'
-  import DefineFunction from '@/pages/device/product/save/definition/Functions.vue'
-  import DefineEvent from '@/pages/device/product/save/definition/Events.vue'
-  import DefineTags from '@/pages/device/product/save/definition/Tags.vue'
+  import DefineAttribute from '../save/definition/attribute.vue'
+  import DefineFunction from '../save/definition/Functions.vue'
+  import DefineEvent from '../save/definition/Events.vue'
+  import DefineTags from '../save/definition/Tags.vue'
 
   export default {
     name: 'CardTable',
@@ -80,20 +105,41 @@
       showData: {
         type: Array,
         default: () => []
+      },
+      edititem: {
+        type: Object,
+        default: () => {}
+      },
+      showDrawer: {
+        type: Boolean,
+        default: false
       }
     },
     data () {
       return {
-        showDrawer: false,
-        form: this.$form.createForm(this)
+        form: this.$form.createForm(this, { name: 'CardTableForm' })
       }
     },
     methods: {
       addData () {
-        this.showDrawer = true
+        this.$emit('addData')
       },
       onCloseDrawer () {
-        this.showDrawer = false
+        this.$emit('close')
+      },
+      onEditItem (metadata) {
+        this.$emit('onEditItem', metadata)
+      },
+      submitData () {
+        if (this.tabKey === '1') {
+          this.$refs.attribute.submitData()
+        } else if (this.tabKey === '2') {
+          this.$refs.funcs.submitData()
+        } else if (this.tabKey === '3') {
+          this.$refs.events.submitData()
+        } else if (this.tabKey === '4') {
+          this.$refs.tags.submitData()
+        }
       }
     }
   }

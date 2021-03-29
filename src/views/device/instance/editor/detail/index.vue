@@ -8,37 +8,37 @@
           </span>
         </template>
         <a-descriptions-item label="产品名称" span="1">
-          2
+          {{ data.productName }}
         </a-descriptions-item>
         <a-descriptions-item label="设备类型" span="1">
-          1
+          {{ data.deviceType ? data.deviceType.text : '' }}
         </a-descriptions-item>
         <a-descriptions-item label="所属机构" span="1">
-          1
+          {{ data.orgName }}
         </a-descriptions-item>
         <a-descriptions-item label="连接协议" span="1">
-          1
+          {{ data.transport }}
         </a-descriptions-item>
         <a-descriptions-item label="消息协议" span="1">
-          1
+          {{ data.protocolName || data.protocol }}
         </a-descriptions-item>
         <a-descriptions-item label="IP地址" span="1">
-          1
+          {{ data.orgName }}
         </a-descriptions-item>
         <a-descriptions-item label="创建时间" span="1">
-          1
+          {{ GetCreateTime }}
         </a-descriptions-item>
         <a-descriptions-item label="注册时间" span="1">
-          1
+          {{ GetRegisterTime }}
         </a-descriptions-item>
         <a-descriptions-item label="最后上线时间" span="1">
-          1
+          {{ GetLastOnlineTime }}
         </a-descriptions-item>
-        <a-descriptions-item label="说明" span="3">
-          1
+        <a-descriptions-item label="说明" span="2">
+          {{ data.describe || data.description }}
         </a-descriptions-item>
         <!-- 循环的tags -->
-        <a-descriptions-item label="云对云接入" :span="3">
+        <!-- <a-descriptions-item label="云对云接入" :span="3">
           <a-tag color="blue" >
             <a-tooltip :title="23414">
               <span>{{ 1234 }}</span>
@@ -47,11 +47,11 @@
               <span :style="{display: 'inline-block', marginLeft: '10px'}">{{ 33 }}</span>
             </a-popconfirm>
           </a-tag>
-        </a-descriptions-item>
+        </a-descriptions-item> -->
       </a-descriptions>
       <div :style="{width: '100%'}">
         <a-descriptions>
-          <template slot="title">
+          <template slot="title" v-if="DeviceConfigList.length">
             <span>配置
               <a-button icon="edit" :style="{marginLeft: '20px'}" type="link">编辑</a-button>
               <a-popconfirm title="确认重新应用该配置？">
@@ -70,24 +70,14 @@
           </template>
         </a-descriptions>
       </div>
-      <div :style="{marginBottom: '20px'}" >
-        <h3>{{ 'MQTT认证配置' }}</h3>
+      <div :style="{marginBottom: '20px'}" v-for="(item,index) in DeviceConfigList" :key="'DeviceConfigList' + index">
+        <h3>{{ item.name }}</h3>
         <a-descriptions bordered :column="2" title="">
-          <a-descriptions-item :span="1">
+          <a-descriptions-item :span="1" v-for="(property, inx) in item.properties" :key="item.property + inx">
             <template slot="label">
               <div>
-                <span :style="{marginRight: '10px'}">{{ 'username' }}</span>
-                <a-tooltip :title="'用户名'">
-                  <a-icon type="question-circle-o"/>
-                </a-tooltip>
-              </div>
-            </template>
-          </a-descriptions-item>
-          <a-descriptions-item :span="1">
-            <template slot="label">
-              <div>
-                <span :style="{marginRight: '10px'}">{{ 'password' }}</span>
-                <a-tooltip :title="'密码'">
+                <span :style="{marginRight: '10px'}">{{ property.name }}</span>
+                <a-tooltip :title="property.description">
                   <a-icon type="question-circle-o"/>
                 </a-tooltip>
               </div>
@@ -100,8 +90,62 @@
 </template>
 
 <script>
+  import moment from 'moment'
+  import apis from '@/api'
   export default {
-    name: 'InsEditorDetail'
+    name: 'InsEditorDetail',
+    props: {
+      data: {
+        type: Object,
+        default: () => {}
+      }
+    },
+    data () {
+      return {
+        DeviceConfigList: []
+      }
+    },
+    watch: {
+      data (newVal, oldVal) {
+        if (Object.keys(newVal).length > 0) {
+          this.GetData()
+        }
+      }
+    },
+    computed: {
+      GetCreateTime () {
+        return moment(this.data.createTime).format('YYYY-MM-DD HH:mm:ss')
+      },
+      GetRegisterTime () {
+        if (this.data.state) {
+          return this.data.state.value !== 'notActive' ? moment(this.data.registerTime).format('YYYY-MM-DD HH:mm:ss') : '/'
+        }
+        return ''
+      },
+      GetLastOnlineTime () {
+        if (this.data.state) {
+          return this.data.state.value !== 'notActive' ? moment(this.data.onlineTime).format('YYYY-MM-DD HH:mm:ss') : '/'
+        }
+        return ''
+      },
+      GetConfigurationList () {
+        if (this.data.configuration.length !== 0) {
+          return this.data.configuration
+        }
+        return []
+      }
+    },
+    methods: {
+      GetData () {
+        const { protocol, transport } = this.data
+        apis.deviceInstance.getDeviceConfig(protocol, transport)
+          .then(res => {
+            if (res.status === 200) {
+              this.DeviceConfigList.push(res.result)
+            }
+          })
+      }
+    }
   }
 </script>
 

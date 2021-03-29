@@ -2,10 +2,11 @@
   <a-drawer
     :visible="visible"
     :width="900"
-    :title="`${data?data.id ? '编辑' : '新增':''}数据转发`"
+    :title="`${dataSource?dataSource.id ? '编辑' : '新增':''}数据转发`"
     @close="onClose"
   >
     <a-form
+      :form="form"
       :labelCol="{ span: 6 }"
       :wrapperCol="{ span: 18 }"
       :style="{ paddingBottom: '20px' }"
@@ -20,8 +21,9 @@
                   {required: true, message: '请输入名称'},
                   {max: 200, message: '名称不超过200个字符'}
                 ],
-                initialValue:data.name ? data.name: ''
+                initialValue:dataSource.name ? dataSource.name: ''
               }]"
+              @change="setName"
               placeholder="请输入名称"
             />
           </a-form-item>
@@ -33,13 +35,28 @@
                 rules: [
                   { required: true, message: '类型' }
                 ],
-                initialValue:data.type ? data.type: ''
+                initialValue:ruleType
               }]"
               placeholder="请选择类型"
+              @change="changeType"
             >
               <a-select-option value="timer" key="timer">定时</a-select-option>
               <a-select-option value="realTime" key="realTime">实时</a-select-option>
             </a-select>
+          </a-form-item>
+        </a-col>
+        <a-col :span="12" v-if="ruleType === 'timer'">
+          <a-form-item key="name" label="名称" >
+            <a-input
+              v-decorator="['cron', {
+                rules: [
+                  {required: true, message: 'cron表达式'}
+                ],
+                initialValue:cron
+              }]"
+              @change="setCron"
+              placeholder="输入cron表达式"
+            />
           </a-form-item>
         </a-col>
         <a-col :span="24">
@@ -52,6 +69,7 @@
               showPrintMargin
               showGutter
               wrapEnabled
+              v-model="sql"
               highlightActiveLine
               enableSnippets
               :style="{width: '100%', height: '300px'}"
@@ -99,7 +117,7 @@
       <a-button :style="{ marginRight: '8px' }">
         关闭
       </a-button>
-      <a-button type="primary" >
+      <a-button type="primary" @click="submit">
         确认
       </a-button>
     </div>
@@ -107,6 +125,7 @@
 </template>
 
 <script>
+  import apis from '@/api'
   import SaveAction from './actions'
   export default {
     name: 'SaveDrawer',
@@ -115,17 +134,87 @@
         type: Boolean,
         default: false
       },
-      data: {
-        type: Boolean,
-        default: false
+      dataSource: {
+        type: Object,
+        default: () => {}
+      }
+    },
+    data () {
+      return {
+        form: this.$form.createForm(this, { name: 'SaveDrawerForm' }),
+        name: '',
+        ruleType: '',
+        cron: '',
+        sql: '',
+        actions: [{ _id: 0 }],
+        whenErrorThen: [{ _id: 0 }],
+        modelType: 'sql_rule',
+        modelVersion: 0
+      }
+    },
+    watch: {
+      dataSource: {
+        handler (newVal, oldVal) {
+          if (Object.keys(newVal).length > 0) {
+            const modelMeta = JSON.parse(newVal.modelMeta)
+            this.ruleType = modelMeta.type
+            this.cron = modelMeta.cron
+            this.sql = modelMeta.sql
+          }
+          // console.log('cccc', newVal)
+          // this.data = { ...newVal }
+        },
+        immediate: true
       }
     },
     components: {
       SaveAction
     },
     methods: {
-      onClose () {
-        this.$emit('onClose', false)
+      setName (e) {
+        this.name = e.target.value
+      },
+      setCron (e) {
+        this.cron = e.target.value
+      },
+      setSql (value) {
+        console.log(value, 11111111111111111)
+        this.sql = value
+      },
+      changeType (type) {
+        this.ruleType = type
+        this.cron = ''
+      },
+      clearData () {
+        this.form.resetFields()
+        this.name = ''
+        this.cron = ''
+        this.sql = ''
+        this.ruleType = ''
+      },
+      onClose (result = '') {
+        this.clearData()
+        this.$emit('onClose', result)
+      },
+      submit () {
+        const modelMeta = {}
+        modelMeta['name'] = this.name
+        modelMeta['type'] = this.ruleType
+        modelMeta['cron'] = this.cron
+        modelMeta['sql'] = this.sql
+        modelMeta['actions'] = this.actions
+        modelMeta['whenErrorThen'] = this.whenErrorThen
+        console.log(modelMeta, 'modelMeta')
+        apis.ruleEngine.addSqlRuleLists({
+          name: this.name,
+          modelMeta: JSON.stringify(modelMeta),
+          modelType: this.modelType,
+          modelVersion: this.modelVersion
+        }).then(res => {
+          if (res.status === 200) {
+            this.onClose(res.result)
+          }
+        }).catch(err => this.$message.error('err', err))
       }
     }
   }

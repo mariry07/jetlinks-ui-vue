@@ -47,6 +47,7 @@ export const asyncRouterMap = [
               },
               {
                 path: '/device/product/save/:id',
+                props: true,
                 name: 'ProductDetail',
                 hidden: true,
                 component: () => import('@/views/device/product/save'),
@@ -132,7 +133,7 @@ export const asyncRouterMap = [
       },
       {
         path: '/rule-engine',
-        name: 'notice',
+        name: 'ruleEngine',
         component: RouteView,
         meta: { title: '规则引擎', icon: 'retweet', permission: [ 'exception' ] },
         children: [
