@@ -17,8 +17,8 @@ module.exports = {
   dev_aly: {
     '/jetlinks': {
       // target: 'http://192.168.3.89:8848/',
-      target: 'http://101.133.174.173:8848/',
-      ws: 'http://101.133.174.173:8848/',
+      target: 'http://127.0.0.1:8848/',
+      ws: 'http://127.0.0.1:8848/',
       changeOrigin: true,
       pathRewrite: { '^/jetlinks': '' }
     }
