@@ -54,7 +54,7 @@ import {
 import Viser from 'viser-vue'
 // 新增的edit功能插件
 import VueAceEdit from 'vue-ace-edit'
-
+import parseTime from '@/utils'
 // ext library
 import VueCropper from 'vue-cropper'
 import Dialog from '@/components/Dialog'
@@ -115,6 +115,32 @@ Vue.prototype.$info = Modal.info
 Vue.prototype.$success = Modal.success
 Vue.prototype.$error = Modal.error
 Vue.prototype.$warning = Modal.warning
+Vue.prototype.formatDate = function (val) {
+  //  shijianchuo是整数，否则要parseInt转换
+  var time = new Date(val)
+  var y = time.getFullYear()
+  var m = time.getMonth() + 1
+  var d = time.getDate()
+  d = d < 10 ? '0' + d : d
+  var h = time.getHours()
+  h = h < 10 ? '0' + h : h
+  var mm = time.getMinutes()
+  mm = mm < 10 ? '0' + mm : mm
+  var s = time.getSeconds()
+  s = s < 10 ? '0' + s : s
+  return y + '-' + m + '-' + d + ' ' + h + ':' + mm + ':' + s
+}
+Vue.prototype.formatJson = function (filterVal, jsonData) {
+  return jsonData.map(v =>
+    filterVal.map(j => {
+      if (j === 'timestamp') {
+        return parseTime(v[j])
+      } else {
+        return v[j]
+      }
+    })
+  )
+}
 
 Vue.use(Viser)
 Vue.use(Dialog) // this.$dialog func

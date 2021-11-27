@@ -8,8 +8,8 @@
 module.exports = {
   dev: {
     '/jetlinks': {
-      target: 'http://192.168.5.3:8848/',
-      ws: 'http://192.168.5.3:8848/',
+      target: 'http://47.96.137.222:8848/',
+      ws: 'http://47.96.137.222:8848/',
       changeOrigin: true,
       pathRewrite: { '^/jetlinks': '' }
     }
@@ -17,8 +17,8 @@ module.exports = {
   dev_aly: {
     '/jetlinks': {
       // target: 'http://192.168.3.89:8848/',
-      target: 'http://101.133.174.173:8848/',
-      ws: 'http://101.133.174.173:8848/',
+      target: 'http://47.96.137.222:8848/',
+      ws: 'http://47.96.137.222:8848/',
       changeOrigin: true,
       pathRewrite: { '^/jetlinks': '' }
     }
@@ -26,7 +26,8 @@ module.exports = {
   pre: {
     '/jetlinks': {
       // target: 'http://192.168.3.89:8848/',
-      target: 'http://2.jetlinks.org:9010/',
+      target: 'http://47.96.137.222:8848/',
+      ws: 'http://47.96.137.222:8848/',
       changeOrigin: true,
       pathRewrite: { '^/jetlinks': '' }
     }

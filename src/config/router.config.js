@@ -1,5 +1,6 @@
 // eslint-disable-next-line
 import { UserLayout, BasicLayout, BlankLayout } from '@/layouts'
+import WarnScreen from '@/views/warnScreen'
 
 const RouteView = {
   name: 'RouteView',
@@ -22,95 +23,6 @@ export const asyncRouterMap = [
         component: () => import('@/views/dashboard/Analysis'),
         meta: { title: 'menu.dashboard.analysis', icon: 'dashboard', keepAlive: false, permission: [ 'dashboard' ] }
       },
-
-      // Menulist
-      {
-        path: '/device',
-        name: 'device',
-        component: RouteView,
-        redirect: '/device/product',
-        meta: { title: '设备管理', icon: 'box-plot', permission: [ 'table' ] },
-        children: [
-          {
-            path: '/device/product',
-            name: 'DeviceProduct',
-            hideChildrenInMenu: true, // 强制显示 MenuItem 而不是 SubMenu
-            component: () => import('@/views/device/product'),
-            meta: { title: '产品', keepAlive: true, icon: 'laptop', permission: [ 'table' ] },
-            children: [
-              {
-                path: '/device/product/add',
-                name: 'AddProduct',
-                hidden: true,
-                component: () => import('@/views/device/product/add'),
-                meta: { title: '新建产品', keepAlive: true, permission: [ 'table' ] }
-              },
-              {
-                path: '/device/product/save/:id',
-                props: true,
-                name: 'ProductDetail',
-                hidden: true,
-                component: () => import('@/views/device/product/save'),
-                meta: { title: '产品详情', keepAlive: true, permission: [ 'table' ] }
-              }
-            ]
-          },
-          {
-            path: '/device/instance',
-            name: 'instance',
-            component: () => import('@/views/device/instance'),
-            hideChildrenInMenu: true,
-            meta: { title: '设备', icon: 'desktop', keepAlive: true, permission: [ 'table' ] },
-            children: [
-              {
-                path: '/device/instance/save/:id',
-                name: 'InstanceDetail',
-                hidden: true,
-                component: () => import('@/views/device/instance/editor'),
-                meta: { title: '设备详情', keepAlive: true, permission: [ 'table' ] }
-              }
-            ]
-          },
-          {
-            path: '/device/alarm',
-            name: 'deviceAlarm',
-            component: () => import('@/views/device/alarmlog'),
-            meta: { title: '设备告警', icon: 'alert', keepAlive: true, permission: [ 'table' ] }
-          }
-        ]
-      },
-      {
-        path: '/network',
-        name: 'network',
-        component: RouteView,
-        meta: { title: '设备接入', icon: 'login', permission: [ 'exception' ] },
-        children: [
-          {
-            path: '/network/certificate',
-            name: 'NetworkCertificate',
-            component: () => import(/* webpackChunkName: "NetworkCertificate" */ '@/views/network/certificate'),
-            meta: { title: '证书管理', icon: 'book', permission: [ 'exception' ] }
-          },
-          {
-            path: '/network/protocol',
-            name: 'networkProtocol',
-            component: () => import(/* webpackChunkName: "networkProtocol" */ '@/views/network/protocol'),
-            meta: { title: '协议管理', icon: 'wallet', permission: [ 'exception' ] }
-          },
-          {
-            path: '/network/type',
-            name: 'networkType',
-            component: () => import(/* webpackChunkName: "networkType" */ '@/views/network/type'),
-            meta: { title: '网络组件', icon: 'deployment-unit', permission: [ 'exception' ] }
-          },
-          {
-            path: '/network/gateway',
-            name: 'networkGateway',
-            component: () => import(/* webpackChunkName: "networkGateway" */ '@/views/network/gateway'),
-            meta: { title: '设备网关', icon: 'cloud-server', permission: [ 'exception' ] }
-          }
-        ]
-      },
       {
         path: '/notice',
         name: 'notice',
@@ -122,46 +34,6 @@ export const asyncRouterMap = [
             name: 'NoticeConfig',
             component: () => import(/* webpackChunkName: "NoticeConfig" */ '@/views/notice/config'),
             meta: { title: '通知配置', icon: 'alert', permission: [ 'exception' ] }
-          },
-          {
-            path: '/notice/template',
-            name: 'NoticeTemplate',
-            component: () => import(/* webpackChunkName: "NoticeTemplate" */ '@/views/notice/template'),
-            meta: { title: '通知模版', icon: 'bell', permission: [ 'exception' ] }
-          }
-        ]
-      },
-      {
-        path: '/rule-engine',
-        name: 'ruleEngine',
-        component: RouteView,
-        meta: { title: '规则引擎', icon: 'retweet', permission: [ 'exception' ] },
-        children: [
-          {
-            path: '/rule-engine/sqlRule',
-            name: 'RuleEngineSqlrule',
-            component: () => import(/* webpackChunkName: "RuleEngineSqlrule" */ '@/views/rule-engine/sqlRule'),
-            meta: { title: '数据转发', icon: 'rise', permission: [ 'exception' ] }
-          }
-        ]
-      },
-      {
-        path: '/logger',
-        name: 'logger',
-        component: RouteView,
-        meta: { title: '日志管理', icon: 'calendar', permission: [ 'exception' ] },
-        children: [
-          {
-            path: '/logger/access',
-            name: 'LoggerAccess',
-            component: () => import(/* webpackChunkName: "LoggerAccess" */ '@/views/logger/access'),
-            meta: { title: '证书管理', icon: 'dash', permission: [ 'exception' ] }
-          },
-          {
-            path: '/logger/system',
-            name: 'LoggerSystem',
-            component: () => import(/* webpackChunkName: "LoggerSystem" */ '@/views/logger/system'),
-            meta: { title: '系统日志', icon: 'ordered-list', permission: [ 'exception' ] }
           }
         ]
       },
@@ -195,7 +67,13 @@ export const asyncRouterMap = [
           }
         ]
       },
-
+      {
+        path: '/warnScreen',
+        component: WarnScreen,
+        redirect: '/warnScreen',
+        name: 'switch',
+        meta: { title: '平板视图', icon: 'user', keepAlive: true, permission: [ 'user' ] }
+      },
       // account
       {
         path: '/account',
@@ -356,7 +234,11 @@ export const constantRouterMap = [
       }
     ]
   },
-
+  {
+    path: '/warnScreen',
+    name: 'warnScreen',
+    component: WarnScreen
+  },
   {
     path: '/404',
     component: () => import(/* webpackChunkName: "fail" */ '@/views/exception/404')
